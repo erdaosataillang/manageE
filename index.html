@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LIFF Sample App</title>
+  <title>LIFF QR Scan App</title>
   <style>
     body {
       font-family: sans-serif;
@@ -16,12 +16,13 @@
       background: #e9ecef;
       border-radius: 5px;
     }
-    .profile {
+    .profile, .scan-result {
       padding: 15px;
       border-radius: 10px;
       background: #fff;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      max-width: 300px;
+      max-width: 400px;
+      margin-bottom: 20px;
     }
     .profile img {
       border-radius: 50%;
@@ -29,31 +30,50 @@
       height: 80px;
       margin-bottom: 10px;
     }
+    button {
+      background: #00b900;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #009900;
+    }
   </style>
 </head>
 <body>
-  <h1>LIFF アプリ</h1>
+  <h1>LIFF QRコードアプリ</h1>
   <div id="status">読み込み中...</div>
+
+  <!-- プロフィール -->
   <div id="profile" class="profile" style="display:none;">
+    <h2>プロフィール情報（デバッグ用）</h2>
     <img id="pictureUrl" alt="profile picture"><br>
     <strong id="displayName"></strong><br>
     <span id="userId"></span>
   </div>
 
-  <!-- ✅ LIFF SDKを必ず先に -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- QRスキャンボタン -->
+  <button id="scanBtn" style="display:none;">📷 QRコードをスキャン</button>
 
+  <!-- スキャン結果 -->
+  <div id="scanResult" class="scan-result" style="display:none;">
+    <h2>QRコード読み取り結果</h2>
+    <p><strong>URL:</strong> <span id="scannedUrl"></span></p>
+    <p><strong>末尾パラメータ:</strong> <span id="lastParam"></span></p>
+  </div>
+
+  <!-- ✅ LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    const liffId = "2008162165-pqZLEwOK"; // ★ここを置き換え必須
+    const liffId = "2008162165-pqZLEwOK"; // ← あなたのLIFF IDに置き換え
 
     async function main() {
       const statusEl = document.getElementById("status");
       try {
-        if (typeof liff === "undefined") {
-          statusEl.textContent = "LIFF SDKの読み込みに失敗しました。";
-          return;
-        }
-
         await liff.init({ liffId });
         await liff.ready;
 
@@ -64,15 +84,51 @@
           return;
         }
 
+        // プロフィール表示（デバッグ用）
         const profile = await liff.getProfile();
         document.getElementById("pictureUrl").src = profile.pictureUrl;
         document.getElementById("displayName").textContent = profile.displayName;
         document.getElementById("userId").textContent = "UserID: " + profile.userId;
         document.getElementById("profile").style.display = "block";
 
+        // QRスキャンボタンを有効化
+        document.getElementById("scanBtn").style.display = "inline-block";
+        document.getElementById("scanBtn").addEventListener("click", scanCode);
+
       } catch (err) {
         console.error("LIFF init error:", err);
         statusEl.textContent = "LIFF初期化エラー: " + err.message;
+      }
+    }
+
+    async function scanCode() {
+      try {
+        const result = await liff.scanCodeV2();
+        if (result && result.value) {
+          const scannedUrl = result.value;
+          document.getElementById("scannedUrl").textContent = scannedUrl;
+
+          // URLの末尾のパラメータだけ取得
+          let lastParam = "";
+          try {
+            const urlObj = new URL(scannedUrl);
+            // 例: ?id=123 の場合は 123 を取得
+            lastParam = urlObj.searchParams.get("id");
+            if (!lastParam) {
+              // id が無ければパスの最後の要素を使う
+              const pathParts = urlObj.pathname.split("/");
+              lastParam = pathParts[pathParts.length - 1];
+            }
+          } catch (e) {
+            lastParam = "無効なURL";
+          }
+
+          document.getElementById("lastParam").textContent = lastParam;
+          document.getElementById("scanResult").style.display = "block";
+        }
+      } catch (err) {
+        console.error("QR scan error:", err);
+        document.getElementById("status").textContent = "QRスキャンに失敗しました: " + err.message;
       }
     }
 
