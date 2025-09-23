@@ -62,14 +62,14 @@
   <!-- スキャン結果 -->
   <div id="scanResult" class="scan-result" style="display:none;">
     <h2>QRコード読み取り結果</h2>
-    <p><strong>URL:</strong> <span id="scannedUrl"></span></p>
+    <p><strong>展開後URL:</strong> <span id="scannedUrl"></span></p>
     <p><strong>末尾パラメータ:</strong> <span id="lastParam"></span></p>
   </div>
 
   <!-- ✅ LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    const liffId = "2008162165-pqZLEwOK"; // ← あなたのLIFF IDに置き換え
+    const liffId = "2008162165-pqZLEwOK"; // ← あなたのLIFF ID
 
     async function main() {
       const statusEl = document.getElementById("status");
@@ -106,12 +106,24 @@
         const result = await liff.scanCodeV2();
         if (result && result.value) {
           const scannedUrl = result.value;
-          document.getElementById("scannedUrl").textContent = scannedUrl;
+
+          // 短縮URLを展開して最終URLを取得
+          let finalUrl = scannedUrl;
+          try {
+            const response = await fetch(scannedUrl, { method: "HEAD", redirect: "follow" });
+            if (response.url) {
+              finalUrl = response.url;
+            }
+          } catch (e) {
+            console.warn("URL展開に失敗しました:", e);
+          }
+
+          document.getElementById("scannedUrl").textContent = finalUrl;
 
           // URLの末尾のパラメータだけ取得
           let lastParam = "";
           try {
-            const urlObj = new URL(scannedUrl);
+            const urlObj = new URL(finalUrl);
             // 例: ?id=123 の場合は 123 を取得
             lastParam = urlObj.searchParams.get("id");
             if (!lastParam) {
