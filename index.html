@@ -16,7 +16,7 @@
       background: #e9ecef;
       border-radius: 5px;
     }
-    .profile, .scan-result {
+    .profile {
       padding: 15px;
       border-radius: 10px;
       background: #fff;
@@ -42,6 +42,28 @@
     button:hover {
       background: #009900;
     }
+    .result-list {
+      margin-top: 20px;
+      padding: 0;
+      list-style: none;
+    }
+    .result-list li {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .result-url {
+      font-size: 12px;
+      color: #666;
+      word-break: break-all;
+    }
+    .result-param {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -59,12 +81,9 @@
   <!-- QRスキャンボタン -->
   <button id="scanBtn" style="display:none;">📷 QRコードをスキャン</button>
 
-  <!-- スキャン結果 -->
-  <div id="scanResult" class="scan-result" style="display:none;">
-    <h2>QRコード読み取り結果</h2>
-    <p><strong>展開後URL:</strong> <span id="scannedUrl"></span></p>
-    <p><strong>末尾パラメータ:</strong> <span id="lastParam"></span></p>
-  </div>
+  <!-- スキャン履歴 -->
+  <h2>スキャン履歴</h2>
+  <ul id="resultList" class="result-list"></ul>
 
   <!-- ✅ LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -118,16 +137,12 @@
             console.warn("URL展開に失敗しました:", e);
           }
 
-          document.getElementById("scannedUrl").textContent = finalUrl;
-
           // URLの末尾のパラメータだけ取得
           let lastParam = "";
           try {
             const urlObj = new URL(finalUrl);
-            // 例: ?id=123 の場合は 123 を取得
             lastParam = urlObj.searchParams.get("id");
             if (!lastParam) {
-              // id が無ければパスの最後の要素を使う
               const pathParts = urlObj.pathname.split("/");
               lastParam = pathParts[pathParts.length - 1];
             }
@@ -135,8 +150,14 @@
             lastParam = "無効なURL";
           }
 
-          document.getElementById("lastParam").textContent = lastParam;
-          document.getElementById("scanResult").style.display = "block";
+          // リストに追加（最新が上に来るように）
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div class="result-param">ID: ${lastParam}</div>
+            <div class="result-url">${finalUrl}</div>
+          `;
+          const list = document.getElementById("resultList");
+          list.insertBefore(li, list.firstChild);
         }
       } catch (err) {
         console.error("QR scan error:", err);
@@ -148,5 +169,4 @@
   </script>
 </body>
 </html>
-
 
