@@ -104,8 +104,8 @@
 
     <script src="https://static.line-scdn.net/liff/2.22.3/sdk.js"></script>
     <script>
-        // LIFF IDはここに設定済みです
-        const liffId = "2008162165-pqZLEwOK";
+        // ✅ LINE Developers の LIFF設定ページで発行された正しい LIFF ID を必ずここに設定してください
+        const liffId = "【あなたのLIFF ID】";  
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
@@ -113,17 +113,17 @@
 
         async function initializeApp() {
             try {
-                await liff.init({
-                    liffId: liffId
-                });
+                await liff.init({ liffId });
+                await liff.ready; // 安定化のため追加
+
                 showContent();
-                document.getElementById("status-message").textContent = ""; // 成功したらメッセージをクリア
+                document.getElementById("status-message").textContent = ""; // 初期化成功
             } catch (error) {
-                console.error("LIFF initialization failed", error);
-                
+                console.error("LIFF initialization failed", error.code, error.message, error);
+
                 let errorMessage = "LIFFの初期化に失敗しました。";
                 if (error.code === "2001") {
-                    errorMessage = "LIFFアプリのURLが正しく設定されていません。";
+                    errorMessage = "LIFFアプリのURLが正しく設定されていません。(Endpointを確認)";
                 } else if (error.code === "2002") {
                     errorMessage = "LIFF IDが正しくありません。";
                 }
@@ -138,7 +138,8 @@
             });
 
             if (!liff.isLoggedIn()) {
-                document.getElementById("status-message").textContent = "このアプリを利用するにはLINEにログインしてください。";
+                document.getElementById("status-message").textContent = 
+                    "このアプリを利用するにはLINEにログインしてください。";
             }
         }
 
@@ -157,7 +158,6 @@
         }
 
         function handleScanResult(scannedUrl) {
-            // スキャン結果が有効なURLであるかを確認
             if (!scannedUrl.startsWith('http://') && !scannedUrl.startsWith('https://')) {
                 document.getElementById("status-message").textContent = "無効なQRコードです。URLとして認識できません。";
                 document.getElementById("item-info").classList.add("hidden");
