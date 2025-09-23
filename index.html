@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>裏方部備品管理アプリ</title>
+    <title>備品管理アプリ</title>
     
     <style>
         body {
@@ -99,7 +99,7 @@
             <p id="item-id-display"></p>
         </div>
 
-        <p class="status" id="status-message"></p>
+        <p class="status" id="status-message">アプリを読み込み中です...</p>
     </div>
 
     <script src="https://static.line-scdn.net/liff/2.22.3/sdk.js"></script>
@@ -117,9 +117,17 @@
                     liffId: liffId
                 });
                 showContent();
+                document.getElementById("status-message").textContent = ""; // 成功したらメッセージをクリア
             } catch (error) {
                 console.error("LIFF initialization failed", error);
-                document.getElementById("status-message").textContent = "LIFFの初期化に失敗しました。";
+                
+                let errorMessage = "LIFFの初期化に失敗しました。";
+                if (error.code === "2001") {
+                    errorMessage = "LIFFアプリのURLが正しく設定されていません。";
+                } else if (error.code === "2002") {
+                    errorMessage = "LIFF IDが正しくありません。";
+                }
+                document.getElementById("status-message").textContent = errorMessage;
             }
         }
 
@@ -149,6 +157,13 @@
         }
 
         function handleScanResult(scannedUrl) {
+            // スキャン結果が有効なURLであるかを確認
+            if (!scannedUrl.startsWith('http://') && !scannedUrl.startsWith('https://')) {
+                document.getElementById("status-message").textContent = "無効なQRコードです。URLとして認識できません。";
+                document.getElementById("item-info").classList.add("hidden");
+                return;
+            }
+            
             try {
                 const url = new URL(scannedUrl);
                 const itemId = url.searchParams.get('id');
@@ -157,13 +172,12 @@
                     document.getElementById("item-id-display").textContent = "備品ID: " + itemId;
                     document.getElementById("item-info").classList.remove("hidden");
                     document.getElementById("status-message").textContent = "";
-
                 } else {
                     document.getElementById("status-message").textContent = "無効なQRコードです。ID情報が含まれていません。";
                     document.getElementById("item-info").classList.add("hidden");
                 }
             } catch (e) {
-                document.getElementById("status-message").textContent = "無効なQRコードです。URLとして認識できません。";
+                document.getElementById("status-message").textContent = "URLの解析中にエラーが発生しました。";
                 document.getElementById("item-info").classList.add("hidden");
             }
         }
